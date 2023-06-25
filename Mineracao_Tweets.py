@@ -21,8 +21,8 @@ try:
     iATRIBUTO.set_keywords(['Guardiões da Galaxia', 'Flash'])
     iATRIBUTO.set_language('pt')    
     iATRIBUTO.set_geocode(-22.800108, -43.182873, 10, imperial_metric=False) #Geolocalizacao{long,lati,raio,metrica(True=Milhas/False=KM)}
-    iATRIBUTO.set_since(datetime.date(2023,06,19)) #de(data) - opcional
-    iATRIBUTO.set_until(datetime.date(2023,06,20)) #ate(data) - opcional
+    iATRIBUTO.set_since(datetime.date(2023,6,19)) #de(data) - opcional
+    iATRIBUTO.set_until(datetime.date(2023,6,20)) #ate(data) - opcional
     iATRIBUTO.set_positive_attitude_filter() #traz os resultados com perfil positivo 
     iATRIBUTO.set_negative_attitude_filter() #traz os resultados com perfil negativo 
     #iATRIBUTO.set_result_type('popular') #tipo de resultados {mixed,recent,popular} - opcional
