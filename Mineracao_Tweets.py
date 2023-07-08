@@ -1,52 +1,101 @@
-from TwitterSearch import * #pip install TwitterSearch
-import json
-import datetime
+from textblob import TextBlob
+import sys
+import tweepy
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+import os
+import nltk
+import pycountry
+import re
+import string
+import nltk
 
-#Variaveis Gerais
-lista_tweets = [] #lista para guardar os tweets com atributos filtrados
-lista_full = [] #lista para guardar os tweets com todos os atributos
-iCONTADOR = 0 #condicao de parada
 
-try:
+from wordcloud import WordCloud, STOPWORDS
+from PIL import Image
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from langdetect import detect
+from nltk.stem import SnowballStemmer
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from sklearn.feature_extraction.text import CountVectorizer
 
-    iCONECTA = TwitterSearch(
-        consumer_key = 'COLE AQUI',
-        consumer_secret = 'COLE AQUI',
-        access_token = 'COLE AQUI',
-        access_token_secret = 'COLE AQUI'
-     )
-   
-    #atribudos de busca
-    iATRIBUTO = TwitterSearchOrder()
-    iATRIBUTO.set_keywords(['Guardiões da Galaxia', 'Flash'])
-    iATRIBUTO.set_language('pt')    
-    iATRIBUTO.set_geocode(-22.800108, -43.182873, 10, imperial_metric=False) #Geolocalizacao{long,lati,raio,metrica(True=Milhas/False=KM)}
-    iATRIBUTO.set_since(datetime.date(2023,6,19)) #de(data) - opcional
-    iATRIBUTO.set_until(datetime.date(2023,6,20)) #ate(data) - opcional
-    iATRIBUTO.set_positive_attitude_filter() #traz os resultados com perfil positivo 
-    iATRIBUTO.set_negative_attitude_filter() #traz os resultados com perfil negativo 
-    #iATRIBUTO.set_result_type('popular') #tipo de resultados {mixed,recent,popular} - opcional
-    #iATRIBUTO.set_question_filter() #traz os resultados que contenham perguntas - opcional
 
-    for tweet in iCONECTA.search_tweets_iterable(iATRIBUTO):
-        lista_full.append(tweet)
-        lista_tweets.append((
-                            "@" + str(tweet['user']['screen_name'])
-                            ,tweet['user']['name']
-                            ,tweet['text']
-                            ,tweet['created_at']
-                            ,tweet['source']
-                            ,tweet['user']['profile_image_url']
-                            )) 
+# Authentication
+consumerKey = "COLE A SUA CONSUMER KEY AQUI"
+consumerSecret = "COLE A SUA CONSUER SECRET AQUI"
+accessToken = "COLE SEU ACCESS TOKEN AQUI"
+accessTokenSecret = "COLE SEU ACCES TOKEN SECRET AQUI"
 
-        iCONTADOR += 1
-        if iCONTADOR > 5: #condicao de parada, quantidade de resultados
-            break
+auth = tweepy.OAuthHandler(consumerKey, consumerSecret)
+auth.set_access_token(accessToken, accessTokenSecret)
+api = tweepy.API(auth)
 
-    json_full = json.dumps(lista_full, indent = 4, ensure_ascii=False) #guarda a lista no formato JSON
-    json_filtro = json.dumps(lista_tweets, indent = 4, ensure_ascii=False) 
-    #print(json_full)   
-    print(json_filtro)   
 
-except TwitterSearchException as e:
-    print(e)
+#Sentiment Analysis
+def percentage(part,whole):
+    return 100 * float(part)/float(whole)
+keyword = input('Please enter Keyword or Hashtag to search:')
+noOfTweet = int(input('Please enter how many tweets to analyze:'))
+tweets = tweepy.Cursor(api.search_tweets, q=keyword, lang='en').items(noOfTweet)
+positive = 0
+negative = 0
+neutral = 0
+polarity = 0
+tweet_list = []
+neutral_list = []
+negative_list = []
+positive_list = []
+
+
+for tweet in tweets: 
+    print(tweet.text)  
+    tweet_list.append(tweet.text)
+    analysis = TextBlob(tweet.text)
+    score = SentimentIntensityAnalyzer().polarity_scores(tweet.text)
+    neg = score['neg']
+    neu = score['neu']
+    pos = score['pos']
+    comp = score['compound']
+    polarity += analysis.sentiment.polarity
+    if neg > pos:
+        negative_list.append(tweet.text)
+        negative += 1
+    elif pos > neg:
+        positive_list.append(tweet.text)
+        positive += 1
+    elif pos == neg:
+        neutral_list.append(tweet.text)
+        neutral += 1
+positive = percentage(positive, noOfTweet)
+negative = percentage(negative, noOfTweet)
+neutral = percentage(neutral, noOfTweet)
+polarity = percentage(polarity, noOfTweet)
+positive = format(positive, '.1f')
+negative = format(negative, '.1f')
+neutral = format(neutral, '.1f')
+
+
+#Number of Tweets (Total, Positive, Negative, Neutral)
+tweet_list = pd.DataFrame(tweet_list)
+neutral_list = pd.DataFrame(neutral_list)
+negative_list = pd.DataFrame(negative_list)
+positive_list = pd.DataFrame(positive_list)
+print("total number: ",len(tweet_list))
+print("positive number: ",len(positive_list))
+print("negative number: ", len(negative_list))
+print("neutral number: ",len(neutral_list))
+
+
+#Creating PieChart
+labels = ['Positive ['+str(positive)+'%]' , 'Neutral ['+str(neutral)+'%]','Negative ['+str(negative)+'%]']
+sizes = [positive, neutral, negative]
+colors = ['yellowgreen', 'blue','red']
+patches, texts = plt.pie(sizes,colors=colors, startangle=90)
+plt.style.use('default')
+plt.legend(labels)
+plt.title("Sentiment Analysis Result for keyword= "+keyword+"" )
+plt.axis('equal')
+plt.show()
+
+tweet_list.drop_duplicates(inplace = True)
